@@ -25,7 +25,6 @@ DHT dht(DHTPIN, DHTTYPE);
 Adafruit_SH1106 display(OLED_RESET);
 
 SFE_BMP180 pressure;
-double baseline; // baseline pressure
 
 struct BMP180Data {
   float pressure, temperature;
@@ -33,18 +32,19 @@ struct BMP180Data {
 
 void setup() {
   Serial.begin(9600);
+  Serial1.begin(9600);
 
   // DHT
   dht.begin();
 
   // BMP180
   if (pressure.begin())
-    Serial.println("BMP180 init success");
+  ;
   else {
     // Oops, something went wrong, this is usually a connection problem,
     // see the comments at the top of this sketch for the proper connections.
     while (1) {
-      Serial.println("BMP180 init fail (disconnected?)\n\n");
+      Serial.println(F("BMP180 init fail"));
       delay(1000);
     }
 
@@ -73,7 +73,7 @@ void loop() {
 
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t)) {
-    Serial.println("Failed to read from DHT sensor!");
+    // Serial.println("Failed read from DHT");
     return;
   }
 
@@ -107,7 +107,7 @@ void loop() {
 
 BMP180Data getPressure() {
   char status;
-  double T, P, p0, a;
+  double T, P;
 
   // You must first get a temperature measurement to perform a pressure reading.
 
@@ -153,21 +153,22 @@ BMP180Data getPressure() {
           data.temperature = T;
           return (data);
         } else
-          Serial.println("error retrieving pressure measurement\n");
+          Serial.println(F("error retrieving pressure measurement\n"));
       } else
-        Serial.println("error starting pressure measurement\n");
+        Serial.println(F("error starting pressure measurement\n"));
     } else
-      Serial.println("error retrieving temperature measurement\n");
+      Serial.println(F("error retrieving temperature measurement\n"));
   } else
-    Serial.println("error starting temperature measurement\n");
+    Serial.println(F("error starting temperature measurement\n"));
 }
 
 // {"Temp_DHT":24.07881,"Temp_BMP180":26.24099,"pressure":752.501,"humidity":36.9}
 void generate_json(float tempDHT, float tempBMP180, double pressure, float humidity) {
-  DynamicJsonDocument jsonData(128);
-  jsonData["Temp_DHT"] = tempDHT;
-  jsonData["Temp_BMP180"] = tempBMP180;
-  jsonData["pressure"] = pressure;
-  jsonData["humidity"] = humidity;
-  serializeJson(jsonData, Serial);
+  DynamicJsonDocument jsonData(32);
+  jsonData["TD"] = tempDHT;
+  jsonData["TB"] = tempBMP180;
+  jsonData["p"] = pressure;
+  jsonData["h"] = humidity;
+  // serializeJson(jsonData, Serial);
+  serializeJson(jsonData, Serial1);
 }
