@@ -101,7 +101,8 @@ void loop() {
   display.println(" mmHG");
 
   display.display();
-  generate_json(tempDHT, bmp180Data.temperature, P, h);
+  // generate_json(tempDHT, bmp180Data.temperature, P, h);
+  write_csv_to_serial(tempDHT, bmp180Data.temperature, P, h);
   delay(5000);
 }
 
@@ -163,12 +164,22 @@ BMP180Data getPressure() {
 }
 
 // {"Temp_DHT":24.07881,"Temp_BMP180":26.24099,"pressure":752.501,"humidity":36.9}
-void generate_json(float tempDHT, float tempBMP180, double pressure, float humidity) {
-  DynamicJsonDocument jsonData(32);
-  jsonData["TD"] = tempDHT;
-  jsonData["TB"] = tempBMP180;
-  jsonData["p"] = pressure;
-  jsonData["h"] = humidity;
-  // serializeJson(jsonData, Serial);
-  serializeJson(jsonData, Serial1);
+// void generate_json(float tempDHT, float tempBMP180, double pressure, float humidity) {
+//   DynamicJsonDocument jsonData(32);
+//   jsonData["TD"] = tempDHT;
+//   jsonData["TB"] = tempBMP180;
+//   jsonData["p"] = pressure;
+//   jsonData["h"] = humidity;
+//   // serializeJson(jsonData, Serial);
+//   serializeJson(jsonData, Serial1);
+// }
+
+void write_csv_to_serial(float tempDHT, float tempBMP180, double pressure, float humidity) {
+  Serial1.print(tempDHT);
+  Serial1.print(F(", "));
+  Serial1.print(tempBMP180);
+  Serial1.print(F(", "));
+  Serial1.print(pressure);
+  Serial1.print(F(", "));
+  Serial1.println(humidity);
 }
