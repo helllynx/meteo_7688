@@ -4,6 +4,7 @@
 #include <SFE_BMP180.h>
 #include <SPI.h>
 #include <Wire.h>
+#include <ArduinoJson.h>
 
 
 #define OLED_RESET 4
@@ -26,21 +27,15 @@ Adafruit_SH1106 display(OLED_RESET);
 SFE_BMP180 pressure;
 double baseline; // baseline pressure
 
+struct BMP180Data {
+  float pressure, temperature;
+};
 
 void setup() {
   Serial.begin(9600);
 
-  // by default, we'll generate the high voltage from the 3.3v line internally!
-  // (neat!)
-  display.begin(SH1106_SWITCHCAPVCC,
-                0x3C); // initialize with the I2C addr 0x3D (for the 128x64)
-  // init done
-  // Clear the buffer.
-  display.clearDisplay();
-
-  // text display tests
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
+  // DHT
+  dht.begin();
 
   // BMP180
   if (pressure.begin())
@@ -48,23 +43,26 @@ void setup() {
   else {
     // Oops, something went wrong, this is usually a connection problem,
     // see the comments at the top of this sketch for the proper connections.
+    while (1) {
+      Serial.println("BMP180 init fail (disconnected?)\n\n");
+      delay(1000);
+    }
 
-    Serial.println("BMP180 init fail (disconnected?)\n\n");
-    while (1)
-      ; // Pause forever.
   }
 
-  // DHT
-  dht.begin();
+  // OLED SH1106
+  display.begin(SH1106_SWITCHCAPVCC,0x3C); // initialize with the I2C addr 0x3D (for the 128x64)
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
 
-  delay(2000);
+  delay(1000);
 }
 
 void loop() {
-
   // BMP180
-  double P = getPressure() * 0.750062;
-
+  BMP180Data bmp180Data = getPressure();
+  double P = bmp180Data.pressure * 0.750062;
 
   // DHT22
   // Reading temperature or humidity takes about 250 milliseconds!
@@ -73,7 +71,6 @@ void loop() {
   // Read temperature as Celsius (the default)
   float t = dht.readTemperature();
 
-
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t)) {
     Serial.println("Failed to read from DHT sensor!");
@@ -81,7 +78,7 @@ void loop() {
   }
 
   // Compute heat index in Celsius (isFahreheit = false)
-  float hic = dht.computeHeatIndex(t, h, false);
+  float tempDHT = dht.computeHeatIndex(t, h, false);
 
   display.clearDisplay();
   // OLED SH1106
@@ -91,19 +88,24 @@ void loop() {
   display.println("%");
 
   display.print("DHT_T: ");
-  display.print(hic);
+  display.print(tempDHT);
   display.println("C");
+
+  display.print("BMP180_T: ");
+  display.print(bmp180Data.temperature);
+  display.println("C");
+
 
   display.print("Press: ");
   display.print(P);
   display.println(" mmHG");
 
   display.display();
+  generate_json(tempDHT, bmp180Data.temperature, P, h);
   delay(5000);
-
 }
 
-double getPressure() {
+BMP180Data getPressure() {
   char status;
   double T, P, p0, a;
 
@@ -146,7 +148,10 @@ double getPressure() {
 
         status = pressure.getPressure(P, T);
         if (status != 0) {
-          return (P);
+          BMP180Data data;
+          data.pressure = P;
+          data.temperature = T;
+          return (data);
         } else
           Serial.println("error retrieving pressure measurement\n");
       } else
@@ -155,4 +160,14 @@ double getPressure() {
       Serial.println("error retrieving temperature measurement\n");
   } else
     Serial.println("error starting temperature measurement\n");
+}
+
+// {"Temp_DHT":24.07881,"Temp_BMP180":26.24099,"pressure":752.501,"humidity":36.9}
+void generate_json(float tempDHT, float tempBMP180, double pressure, float humidity) {
+  DynamicJsonDocument jsonData(128);
+  jsonData["Temp_DHT"] = tempDHT;
+  jsonData["Temp_BMP180"] = tempBMP180;
+  jsonData["pressure"] = pressure;
+  jsonData["humidity"] = humidity;
+  serializeJson(jsonData, Serial);
 }
