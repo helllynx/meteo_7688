@@ -1,4 +1,6 @@
- import serial
+# run with  -  ((python script.py)&)&
+
+import serial
 import time
 import signal
 import sys
