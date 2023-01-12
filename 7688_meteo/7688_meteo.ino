@@ -103,7 +103,7 @@ void loop() {
   display.display();
   // generate_json(tempDHT, bmp180Data.temperature, P, h);
   write_csv_to_serial(tempDHT, bmp180Data.temperature, P, h);
-  delay(5000);
+  delay(10000);
 }
 
 BMP180Data getPressure() {
@@ -175,6 +175,8 @@ BMP180Data getPressure() {
 // }
 
 void write_csv_to_serial(float tempDHT, float tempBMP180, double pressure, float humidity) {
+  Serial1.print(millis());
+  Serial1.print(F(", "));
   Serial1.print(tempDHT);
   Serial1.print(F(", "));
   Serial1.print(tempBMP180);

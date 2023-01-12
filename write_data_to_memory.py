@@ -21,6 +21,9 @@ def setup():
     # specified in the Arduino sketch uploaded to ATmega32U4.
     s = serial.Serial("/dev/ttyS0", 9600)
 
+    with open("/mnt/sdcard/data.txt", "a+") as file:
+        file.write(s.read())
+
 def loop():
     with open("/mnt/sdcard/data.txt", "a+") as file:
         file.write(s.read())
