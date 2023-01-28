@@ -8,3 +8,9 @@ ssh  -oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-rsa ro
 
 where 192.168.100.1 is address of linkit device, please check it first.
 
+Put script write_data_to_memory.py to /root then add next line to `/etc/rc.local`
+
+```bash
+((python script.py)&)&
+((python -m SimpleHTTPServer 9000)&)&
+```
